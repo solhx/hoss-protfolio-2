@@ -1,7 +1,7 @@
 export { default as HomeAboutMeSection } from './about-me-section';
 export { default as HomeBreakSection } from './break-section';
 export { default as HomeContactUsSection } from './contact-us-section';
-export { default as HomeCounterSection } from './counter-section';
+export { default as HomeCounterSection } from './counter-section';    // ✅
 export { default as HomeExperienceSection } from './experience-section';
 export { default as HomeGetInTouchSection } from './get-in-touch-section';
 export { default as HomeHeroSection } from './hero-section';

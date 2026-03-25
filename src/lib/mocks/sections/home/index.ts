@@ -1,6 +1,7 @@
-export * from './about-me-section';
-export * from './contact-us-section';
-export * from './counter-section';
-export * from './experience-section';
-export * from './projects-section';
-export * from './skills-section';
+export { AboutMeSectionData } from './about-me-section';
+export { ContactUsItems } from './contact-us-section';
+export { CounterStats } from './counter-section';           // ✅ Make sure this exists
+export { ExperienceItemsData } from './experience-data';
+export { ExperienceItems } from './experience-section';
+export { ProductsItems } from './projects-section';
+export { SkillsItems } from './skills-section';

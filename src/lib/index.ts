@@ -1,2 +1,3 @@
 export * from './mocks';
-export * from './portfolio-data';
+export * from './motion';
+export { portfolioData } from './portfolio-data';

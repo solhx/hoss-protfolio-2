@@ -1,12 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* CUSTOM VARIANTS */
 @custom-variant dark (&:is(.dark *));
 
-/* THEME */
 @theme inline {
-  /* Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-border: var(--border);
@@ -21,14 +18,10 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-destructive: var(--destructive);
-
-  /* Cards / Popovers */
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-
-  /* Sidebar */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -37,30 +30,34 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
-  /* Charts */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  /* Fonts */
   --font-sans: var(--font-inter-sans);
   --font-mono: var(--font-inter-sans);
 
-  /* Radius */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Animations */
+  /* Motion tokens as CSS custom properties */
+  --duration-instant: 100ms;
+  --duration-fast: 200ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --duration-slower: 800ms;
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
   --animate-gradient: gradient 8s linear infinite;
   --animate-shiny-text: shiny-text 8s infinite;
   --animate-cell-ripple: cell-ripple var(--duration, 200ms) ease-out none 1 var(--delay, 0ms);
 
-  /* Keyframes */
   @keyframes gradient {
     to {
       background-position: var(--bg-size, 300%) 0;
@@ -154,10 +151,13 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* KEYFRAMES */
+/* =============================================
+   KEYFRAMES
+   ============================================= */
+
 @keyframes fadePulse {
-  0%, 100% { opacity: 0.1; }
-  50% { opacity: 0.5; }
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.35; }
 }
 
 @keyframes marquee {
@@ -170,7 +170,42 @@
   100% { transform: translateX(33.333%); }
 }
 
-/* ANIMATIONS */
+@keyframes heroLineShimmer {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* =============================================
+   ANIMATION UTILITIES
+   ============================================= */
+
 .animate-marquee {
   animation: marquee 25s linear infinite;
 }
@@ -179,7 +214,94 @@
   animation: marquee-reverse 25s linear infinite;
 }
 
-/* BASE */
+.hero-line-shimmer {
+  animation: heroLineShimmer 6s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-slide-in {
+  animation: slideInFromBottom var(--duration-slow) var(--ease-smooth) both;
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--duration-slow) var(--ease-smooth) both;
+}
+
+/* Stagger delay utilities */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+.stagger-6 { animation-delay: 300ms; }
+.stagger-7 { animation-delay: 350ms; }
+.stagger-8 { animation-delay: 400ms; }
+
+/* =============================================
+   THEME TRANSITIONS
+   ============================================= */
+
+html {
+  scrollbar-width: none;
+  transition: color var(--duration-normal) var(--ease-in-out),
+              background-color var(--duration-normal) var(--ease-in-out);
+}
+
+
+/* =============================================
+   ACCESSIBILITY — REDUCED MOTION
+   ============================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-marquee,
+  .animate-marquee-reverse {
+    animation: none !important;
+  }
+
+  .hero-line-shimmer {
+    animation: none !important;
+    opacity: 0.5;
+  }
+
+  .animate-float {
+    animation: none !important;
+  }
+}
+
+/* =============================================
+   FOCUS VISIBLE — KEYBOARD NAVIGATION
+   ============================================= */
+
+:focus-visible {
+  outline: 2px solid oklch(0.696 0.17 162.48);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.no-outline:focus-visible {
+  outline: none !important;
+}
+/* Remove focus outline for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* =============================================
+   BASE
+   ============================================= */
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -190,28 +312,51 @@
   }
 }
 
-/* COMPONENTS */
+/* =============================================
+   COMPONENTS
+   ============================================= */
+
 @layer components {
   .main-button {
-    @apply w-fit px-6 py-3 sm:px-7 rounded-lg bg-neutral-50/50 dark:bg-neutral-100/10 backdrop-blur-sm border border-card-foreground/30 hover:border-card-foreground/50 text-foreground transition-all duration-300 flex items-center gap-2
+    @apply w-fit px-6 py-3 sm:px-7 rounded-lg bg-neutral-50/50 dark:bg-neutral-100/10 backdrop-blur-sm border border-card-foreground/30 hover:border-emerald-500/50 text-foreground transition-all duration-300 flex items-center gap-2 hover:shadow-md hover:shadow-emerald-500/10 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
 
   .section-container {
-    @apply py-12 sm:py-16 container mx-auto px-4 sm:px-6 lg:px-8 w-full
+    @apply py-12 sm:py-16 container mx-auto px-4 sm:px-6 lg:px-8 w-full;
   }
 
   .section-description {
-    @apply max-w-2xl text-base sm:text-lg text-neutral-600 dark:text-neutral-300 leading-relaxed
+    @apply max-w-2xl text-base sm:text-lg text-neutral-600 dark:text-neutral-300 leading-relaxed;
+  }
+
+  /* Interactive card base — reusable across sections */
+  .interactive-card {
+    @apply relative backdrop-blur-sm bg-card/20 border border-border/50 rounded-lg transition-all duration-300 hover:bg-card/40 hover:border-emerald-500/30 hover:shadow-sm hover:shadow-emerald-500/5;
+  }
+
+  /* Form input base */
+  .form-input {
+    @apply w-full rounded-lg border border-card-foreground/30 p-3 bg-transparent outline-none transition-all duration-300 focus:border-emerald-500/70 focus:ring-1 focus:ring-emerald-500/20 placeholder:text-muted-foreground/50;
   }
 }
 
-/* GLOBALS */
-html {
-  scrollbar-width: none;
-}
+/* =============================================
+   SCROLLBAR (for browsers that support webkit)
+   ============================================= */
 
-@media (max-width: 1280px) {
+::-webkit-scrollbar {
+  display: none;
+}
+/* Native smooth scroll ONLY as fallback if JS fails */
+@supports not (animation: none) {
   html {
     scroll-behavior: smooth;
+  }
+}
+
+/* Reduced motion: instant scroll everywhere */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
   }
 }

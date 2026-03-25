@@ -1,54 +1,32 @@
-import dynamic from 'next/dynamic';
+// Dynamic imports are unnecessary here since ssr:true is the default.
+// These components all render above/near the fold on initial page load.
+// Using direct imports reduces complexity and improves code clarity.
+// If you want code-splitting, use ssr:false ONLY for heavy client components.
 
-const HomeHeroSection = dynamic(
-	() => import('src/components').then(m => m.HomeHeroSection),
-	{ ssr: true },
-);
-const HomeAboutMeSection = dynamic(
-	() => import('src/components').then(m => m.HomeAboutMeSection),
-	{ ssr: true },
-);
-const HomeBreakSection = dynamic(
-	() => import('src/components').then(m => m.HomeBreakSection),
-	{ ssr: true },
-);
-const HomeSkillsSection = dynamic(
-	() => import('src/components').then(m => m.HomeSkillsSection),
-	{ ssr: true },
-);
-const HomeExperienceSection = dynamic(
-	() => import('src/components').then(m => m.HomeExperienceSection),
-	{ ssr: true },
-);
-const HomeCounterSection = dynamic(
-	() => import('src/components').then(m => m.HomeCounterSection),
-	{ ssr: true },
-);
-const HomeProjectsSection = dynamic(
-	() => import('src/components').then(m => m.HomeProjectsSection),
-	{ ssr: true },
-);
-const HomeGetInTouchSection = dynamic(
-	() => import('src/components').then(m => m.HomeGetInTouchSection),
-	{ ssr: true },
-);
-const HomeContactUsSection = dynamic(
-	() => import('src/components').then(m => m.HomeContactUsSection),
-	{ ssr: true },
-);
+import {
+  HomeHeroSection,
+  HomeAboutMeSection,
+  HomeBreakSection,
+  HomeSkillsSection,
+  HomeExperienceSection,
+  HomeCounterSection,
+  HomeProjectsSection,
+  HomeGetInTouchSection,
+  HomeContactUsSection,
+} from 'src/components';
 
 export default function Home() {
-	return (
-		<main id='home-page'>
-			<HomeHeroSection />
-			<HomeAboutMeSection />
-			<HomeBreakSection />
-			<HomeSkillsSection />
-			<HomeExperienceSection />
-			<HomeCounterSection />
-			<HomeProjectsSection />
-			<HomeGetInTouchSection />
-			<HomeContactUsSection />
-		</main>
-	);
+  return (
+    <main id='home-page'>
+      <HomeHeroSection />
+      <HomeAboutMeSection />
+      <HomeBreakSection />
+      <HomeSkillsSection />
+      <HomeExperienceSection />
+      <HomeCounterSection />
+      <HomeProjectsSection />
+      <HomeGetInTouchSection />
+      <HomeContactUsSection />
+    </main>
+  );
 }

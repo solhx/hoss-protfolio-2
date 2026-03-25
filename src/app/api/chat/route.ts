@@ -1,148 +1,138 @@
+// src/app/api/chat/route.ts
+import OpenAI from 'openai';
 import { portfolioData } from 'src/lib';
 
-const getRandom = (arr: string[]) =>
-	arr[Math.floor(Math.random() * arr.length)];
+const openai = new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
 
-const detectLanguage = (text: string) =>
-	/[\u0600-\u06FF]/.test(text) ? 'ar' : 'en';
+const SYSTEM_PROMPT = `You are ${portfolioData.name}'s AI portfolio assistant on his personal website. You help visitors learn about his skills, experience, and projects.
 
-const normalizeArabic = (text: string) =>
-	text
-		.replace(/[\u064B-\u065F]/g, '')
-		.replace(/[إأآا]/g, 'ا')
-		.replace(/ى/g, 'ي')
-		.replace(/ة/g, 'ه');
+RULES:
+- Be friendly, professional, and concise
+- Answer in the SAME LANGUAGE the user writes in (Arabic or English)
+- If the user writes in Egyptian Arabic, respond in Egyptian Arabic
+- Only answer questions related to the portfolio, skills, experience, projects, and contact info
+- If someone asks something completely unrelated, politely redirect them
+- Keep responses under 120 words unless the user asks for detail
+- If asked about availability, mention he is available for work
+- If asked how to contact, provide WhatsApp and email
+- Do NOT make up information not in the portfolio data below
+- You can use emoji sparingly
 
-const normalize = (text: string) =>
-	normalizeArabic(
-		text
-			.toLowerCase()
-			.replace(/[^\p{L}\p{N}\s]/gu, '')
-			.trim(),
-	);
+PORTFOLIO DATA:
+- Name: ${portfolioData.name}
+- Role: ${portfolioData.role}
+- Experience: ${portfolioData.experience}
+- Email: ${portfolioData.email}
+- Phone: ${portfolioData.phone}
+- Tech Stack: ${portfolioData.stack?.join(', ')}
+- Projects: ${portfolioData.projects}
+- Experience Timeline: ${portfolioData.detailedExperience?.join(' → ')}
+- Social Links: ${portfolioData.socials?.map(s => `${s.platform}: ${s.link}`).join(', ')}
+- Education: ${portfolioData.education?.join(', ') || 'Web Development Diploma from Route Egypt Academy'}
 
-const responses = [
-	{
-		lang: 'en',
-		pattern: /\b(name|who are you|who is this|your name)\b/i,
-		responses: [
-			`I am ${portfolioData.name}, a ${portfolioData.role}.`,
-			`You're chatting with ${portfolioData.name}, working as a ${portfolioData.role}.`,
-			`${portfolioData.name} here, ${portfolioData.role}.`,
-		],
-	},
-	{
-		lang: 'en',
-		pattern: /\b(stack|skills?|tech|tools?|frameworks?|libraries?)\b/i,
-		responses: [
-			`My main tech stack includes ${portfolioData.stack.join(', ')}.`,
-			`I work mostly with ${portfolioData.stack
-				.slice(0, 6)
-				.join(', ')} and more.`,
-			`I'm experienced with ${portfolioData.stack.join(', ')}.`,
-		],
-	},
-	{
-		lang: 'ar',
-		pattern: /(اسمك|اسمك ايه|انت مين|مين انت)/,
-		responses: [
-			`أنا ${portfolioData.name}، ${portfolioData.role}.`,
-			`اسمي ${portfolioData.name} وبشتغل ${portfolioData.role}.`,
-		],
-	},
-	{
-		lang: 'ar',
-		pattern: /(مهارات|بتعرف ايه|ستاك|تقنيات|تكنولوجي|فريمورك)/,
-		responses: [
-			`بشتغل بشكل أساسي بـ ${portfolioData.stack.join(', ')}.`,
-			`مهاراتي التقنية تشمل ${portfolioData.stack.join(', ')}.`,
-		],
-	},
-	{
-		lang: 'ar',
-		pattern: /(خبره|خبرتك|شركة|شركات|سنين خبره|اشتغلت قد ايه)/,
-		responses: [
-			`عندي خبرة ${portfolioData.experience} في مجال الفرونت إند.`,
-			`خبرتي تمتد لـ ${
-				portfolioData.experience
-			} وشملت ${portfolioData.detailedExperience.join(', ')}.`,
-		],
-	},
-	{
-		lang: 'ar',
-		pattern: /(مشاريع|اعمالك|بورتفوليو|اشتغلت على ايه)/,
-		responses: [
-			`من مشاريعي ${portfolioData.projects}.`,
-			`اشتغلت على مشاريع زي ${portfolioData.projects
-				.split(',')
-				.slice(0, 4)
-				.join(', ')}.`,
-		],
-	},
-	{
-		lang: 'ar',
-		pattern: /(تواصل|اكلمك|ايميل|رقم|لينكدان|جيتهاب)/,
-		responses: [
-			`تقدر تتواصل معايا على ${portfolioData.email} أو ${portfolioData.phone}.`,
-			`للتواصل ${portfolioData.email} وكمان على ${portfolioData.socials
-				.map(s => s.platform)
-				.join(', ')}.`,
-		],
-	},
-	{
-		lang: 'ar',
-		pattern: /(اهلا|مرحبا|السلام عليكم|هاي)/,
-		responses: [
-			`أهلاً! اسألني عن خبرتي أو مشاريعي.`,
-			`مرحبًا، تقدر تسأل عن أي حاجة تخص البورتفوليو.`,
-		],
-	},
-	{
-		lang: 'ar',
-		pattern: /(شكرا|متشكر|تسلم)/,
-		responses: ['العفو!', 'في أي وقت.'],
-	},
-];
+ARABIC CONTEXT:
+- If user says "اهلا" or "مرحبا", greet them warmly in Arabic
+- Use Egyptian dialect when responding in Arabic
+- Keep tech terms in English even in Arabic responses`;
+
+// ─── Rate limiter ───
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const limit = rateLimitMap.get(ip);
+  if (!limit || now > limit.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + 60000 });
+    return false;
+  }
+  limit.count++;
+  return limit.count > 20;
+}
 
 export async function POST(req: Request) {
-	try {
-		const { messages } = await req.json();
-		const lastMessage = messages[messages.length - 1];
-		const question = normalize(lastMessage.content);
-		const lang = detectLanguage(question);
+  const encoder = new TextEncoder();
 
-		const refusal =
-			lang === 'ar'
-				? 'أنا مخصص فقط للإجابة عن الأسئلة المتعلقة بالبورتفوليو.'
-				: 'I only answer portfolio-related questions.';
+  function errorStream(message: string) {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(message));
+        controller.close();
+      },
+    });
+    return new Response(stream, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
 
-		let answer = refusal;
+  try {
+    if (!process.env.OPENROUTER_API_KEY) {
+      console.error('❌ OPENROUTER_API_KEY is not set');
+      return errorStream('⚠️ Chat is not configured. Please add OPENROUTER_API_KEY to .env.local');
+    }
 
-		for (const item of responses) {
-			if (item.lang === lang && item.pattern.test(question)) {
-				answer = getRandom(item.responses);
-				break;
-			}
-		}
+    const { messages } = await req.json();
 
-		const encoder = new TextEncoder();
-		const stream = new ReadableStream({
-			async start(controller) {
-				for (const word of answer.split(' ')) {
-					controller.enqueue(encoder.encode(word + ' '));
-					await new Promise(r => setTimeout(r, 20 + Math.random() * 40));
-				}
-				controller.close();
-			},
-		});
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return errorStream('No messages provided.');
+    }
 
-		return new Response(stream, {
-			headers: {
-				'Content-Type': 'text/plain; charset=utf-8',
-				'Cache-Control': 'no-cache',
-			},
-		});
-	} catch (err) {
-		return new Response(`Internal Server Error ${err}`, { status: 500 });
-	}
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+    if (isRateLimited(ip)) {
+      return errorStream('⏳ Too many messages. Please wait a moment.');
+    }
+
+    // Filter out welcome messages
+    const filtered = messages.filter(
+      (m: { content: string }) =>
+        m.content !== "👋 Hi! I'm Hossam's AI assistant. Ask me about his skills, projects, or experience!" &&
+        m.content !== 'Hello, How can i help you ?',
+    );
+
+    console.log('📤 Sending to OpenRouter:', filtered[filtered.length - 1]?.content);
+
+    const response = await openai.chat.completions.create({
+      model: 'anthropic/claude-haiku-4.5', // ✅ Free on OpenRouter
+      stream: true,
+      max_tokens: 500,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...filtered.map((m: { role: string; content: string }) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        })),
+      ],
+    });
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of response) {
+            const content = chunk.choices[0]?.delta?.content;
+            if (content) {
+              console.log('📥 Chunk:', content.substring(0, 50));
+              controller.enqueue(encoder.encode(content));
+            }
+          }
+        } catch (err) {
+          console.error('❌ Stream error:', err);
+          controller.enqueue(encoder.encode('\n\nResponse interrupted. Please try again.'));
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      },
+    });
+  } catch (error) {
+    console.error('❌ Chat error:', (error as Error)?.message);
+    return errorStream("Sorry, I'm having trouble right now. Please try again.");
+  }
 }

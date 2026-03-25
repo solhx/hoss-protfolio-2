@@ -10,14 +10,15 @@ export interface Message {
 }
 
 export const useChat = () => {
-	const [messages, setMessages] = useState<Message[]>([
-		{
-			id: '0',
-			role: 'assistant',
-			content: 'Hello, How can i help you ?',
-			timestamp: 0,
-		},
-	]);
+	// src/hooks/useChat.ts — only change the initial message
+const [messages, setMessages] = useState<Message[]>([
+  {
+    id: '0',
+    role: 'assistant',
+    content: "👋 Hi! I'm Hossam's AI assistant. Ask me about his skills, projects, or experience!",
+    timestamp: 0,
+  },
+]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const abortRef = useRef<AbortController | null>(null);
