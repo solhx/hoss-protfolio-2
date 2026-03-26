@@ -57,7 +57,15 @@ export const ToggleTheme = ({
 	}, []);
 
 	const toggleTheme = useCallback(async () => {
+			const rect = buttonRef.current?.getBoundingClientRect();
+			if (!rect || !document.body.contains(buttonRef.current)) return;
 		if (!buttonRef.current) return;
+
++		// Capture rect early for stability during transition
++	
+		
++
+  		// Wait for the DOM update to complete within the View Transition
 
 		// Wait for the DOM update to complete within the View Transition
 		await document.startViewTransition(() => {
@@ -70,8 +78,7 @@ export const ToggleTheme = ({
 		}).ready;
 
 		// Calculate coordinates and dimensions for spatial animations
-		const { top, left, width, height } =
-			buttonRef.current.getBoundingClientRect();
+		const { top, left, width, height } = rect;
 		const x = left + width / 2;
 		const y = top + height / 2;
 		const maxRadius = Math.hypot(
