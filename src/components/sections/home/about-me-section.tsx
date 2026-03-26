@@ -8,12 +8,11 @@ import Link from 'next/link';
 import { useRef } from 'react';
 import { CardBody, CardContainer, CardItem } from 'src/components/ui';
 import { SectionReveal } from 'src/components/ui/section-reveal';
+import { MainTitle } from 'src/components/ui/main-title';
 import { useReducedMotion } from 'src/hooks/useReducedMotion';
 import { AboutMeSectionData } from 'src/lib';
 import { duration, ease, stagger } from 'src/lib/motion';
 
-// ✅ Lazy load Ballpit — heavy Three.js component
-// Only loads on client, with ssr:false since it's pure canvas
 const Ballpit = dynamic(
   () => import('src/components/ui/ballpit').then((m) => m.Ballpit),
   {
@@ -31,9 +30,14 @@ export default function HomeAboutMeSection() {
 
   return (
     <section
-      className='section-container'
+      className='section-container space-y-8'
       id='home-about-me-section'
     >
+      {/* Section title */}
+      <SectionReveal>
+        <MainTitle regularText='About' boldText='Me' />
+      </SectionReveal>
+
       <motion.div
         ref={ref}
         className='grid grid-cols-1 md:grid-cols-2 gap-8'
@@ -48,7 +52,7 @@ export default function HomeAboutMeSection() {
                   opacity: 1,
                   transition: {
                     staggerChildren: stagger.section,
-                    delayChildren: 0.1,
+                    delayChildren: 0.15,
                   },
                 },
               }
@@ -63,13 +67,15 @@ export default function HomeAboutMeSection() {
                 : {
                     hidden: {
                       opacity: 0,
-                      y: 32,
-                      scale: 0.96,
+                      y: 40,
+                      scale: 0.95,
+                      filter: 'blur(8px)',
                     },
                     visible: {
                       opacity: 1,
                       y: 0,
                       scale: 1,
+                      filter: 'blur(0px)',
                       transition: {
                         duration: duration.slower,
                         ease: ease.smooth,
@@ -79,8 +85,7 @@ export default function HomeAboutMeSection() {
             }
           >
             <CardContainer className='inter-var'>
-              <CardBody className='relative overflow-hidden rounded-xl border border-black/10 dark:border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-md transition-all duration-300 hover:border-emerald-500 dark:hover:border-emerald-400/40'>
-                {/* ✅ Ballpit only renders when section is in view AND not reduced motion */}
+              <CardBody className='group relative overflow-hidden rounded-xl border border-black/10 dark:border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-md transition-all duration-300 hover:border-emerald-500 dark:hover:border-emerald-400/40'>
                 {isInView && !prefersReduced ? (
                   <Ballpit
                     className='absolute inset-0 -z-2'
@@ -107,9 +112,17 @@ export default function HomeAboutMeSection() {
                     translateZ='60'
                     className='flex items-center gap-3 text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-4'
                   >
-                    <div className='p-2 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-lg transition-colors duration-300 group-hover:bg-emerald-500/20'>
+                    <motion.div
+                      className='p-2 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-lg transition-colors duration-300 group-hover:bg-emerald-500/20'
+                      whileHover={
+                        prefersReduced
+                          ? {}
+                          : { rotate: [0, -8, 8, 0], scale: 1.05 }
+                      }
+                      transition={{ duration: 0.4 }}
+                    >
                       <Icon className='w-7 h-7 text-emerald-600 dark:text-emerald-400' />
-                    </div>
+                    </motion.div>
                     {title}
                   </CardItem>
 
@@ -125,9 +138,9 @@ export default function HomeAboutMeSection() {
                             <Link
                               href='/Hossam-Hassan-Resume.pdf'
                               download
-                              className='main-button group'
+                              className='main-button group/dl'
                             >
-                              <IconFileDownload className='w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:-translate-y-0.5' />
+                              <IconFileDownload className='w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover/dl:-translate-y-0.5' />
                               <span className='font-medium text-xs sm:text-sm tracking-wide'>
                                 VIEW RESUME
                               </span>
@@ -150,7 +163,6 @@ export default function HomeAboutMeSection() {
                     )}
                   </div>
 
-                  {/* Background decorative icon */}
                   <CardItem
                     translateZ='30'
                     className='absolute z-[-1] right-4 bottom-4 w-32 sm:w-40 h-32 sm:h-40 pointer-events-none select-none opacity-[0.06]'

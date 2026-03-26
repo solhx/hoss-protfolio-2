@@ -8,11 +8,12 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { FlowingMenu, MainTitle } from 'src/components';
 import { SectionReveal } from 'src/components/ui/section-reveal';
+import { useReducedMotion } from 'src/hooks/useReducedMotion';
 import { ContactUsItems } from 'src/lib';
 import { duration, ease } from 'src/lib/motion';
 import { ContactUsSchema, contactUsSchema } from 'src/validation';
 
-// Spinner component
+// ─── Spinner ───
 const Spinner = () => (
   <motion.div
     className='h-4 w-4 border-2 border-foreground/30 border-t-foreground rounded-full'
@@ -21,7 +22,7 @@ const Spinner = () => (
   />
 );
 
-// Success checkmark
+// ─── Success Check ───
 const SuccessIcon = () => (
   <motion.svg
     className='h-4 w-4 text-emerald-500'
@@ -31,9 +32,6 @@ const SuccessIcon = () => (
     strokeWidth={3}
     strokeLinecap='round'
     strokeLinejoin='round'
-    initial={{ pathLength: 0 }}
-    animate={{ pathLength: 1 }}
-    transition={{ duration: duration.slow, ease: ease.smooth }}
   >
     <motion.path
       d='M5 13l4 4L19 7'
@@ -44,10 +42,41 @@ const SuccessIcon = () => (
   </motion.svg>
 );
 
+// ─── Animated Input Wrapper with focus line ───
+function FormField({
+  children,
+  error,
+}: {
+  children: React.ReactNode;
+  error?: string;
+}) {
+  return (
+    <div className='relative'>
+      {children}
+      <AnimatePresence>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -4, height: 0 }}
+            transition={{ duration: duration.fast }}
+            className='text-red-500 text-sm mt-1.5 flex items-center gap-1'
+          >
+            <span className='inline-block w-1 h-1 rounded-full bg-red-500' />
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function HomeContactUsSection() {
   const [status, setStatus] = useState<
     'idle' | 'sending' | 'success' | 'error'
   >('idle');
+  const prefersReduced = useReducedMotion();
+
   const {
     register,
     handleSubmit,
@@ -71,7 +100,6 @@ export default function HomeContactUsSection() {
       );
       setStatus('success');
       reset();
-      // Auto-reset success message after 5s
       setTimeout(() => setStatus('idle'), 5000);
     } catch {
       setStatus('error');
@@ -80,7 +108,7 @@ export default function HomeContactUsSection() {
   };
 
   const inputClassName =
-    'w-full rounded-lg border border-card-foreground/30 p-3 bg-transparent outline-none transition-all duration-300 focus:border-emerald-500/70 focus:ring-1 focus:ring-emerald-500/20 placeholder:text-muted-foreground/50';
+    'form-input peer';
 
   return (
     <section
@@ -91,90 +119,76 @@ export default function HomeContactUsSection() {
         <SectionReveal direction='left'>
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className='w-full bg-transparent rounded-2xl space-y-4'
+            className='w-full bg-transparent rounded-2xl space-y-5'
+            noValidate
           >
             <MainTitle regularText='Contact' boldText='Me' />
 
-            {/* Name field */}
-            <div>
-              <input
-                type='text'
-                placeholder='Your Name'
-                {...register('name')}
-                className={inputClassName}
-              />
-              <AnimatePresence>
-                {errors.name && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4, height: 0 }}
-                    animate={{ opacity: 1, y: 0, height: 'auto' }}
-                    exit={{ opacity: 0, y: -4, height: 0 }}
-                    transition={{ duration: duration.fast }}
-                    className='text-red-500 text-sm mt-1'
-                  >
-                    {errors.name.message}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
+            {/* Name */}
+            <FormField error={errors.name?.message}>
+              <div className='relative'>
+                <input
+                  type='text'
+                  placeholder='Your Name'
+                  {...register('name')}
+                  className={inputClassName}
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? 'name-error' : undefined}
+                />
+                {/* Focus underline animation */}
+                <motion.div
+                  className='absolute bottom-0 left-0 right-0 h-[2px] bg-emerald-500 rounded-full'
+                  initial={{ scaleX: 0 }}
+                  whileFocus={{ scaleX: 1 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ transformOrigin: 'center' }}
+                />
+              </div>
+            </FormField>
 
-            {/* Email field */}
-            <div>
+            {/* Email */}
+            <FormField error={errors.email?.message}>
               <input
                 type='email'
                 placeholder='Your Email'
                 {...register('email')}
                 className={inputClassName}
+                aria-invalid={!!errors.email}
               />
-              <AnimatePresence>
-                {errors.email && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4, height: 0 }}
-                    animate={{ opacity: 1, y: 0, height: 'auto' }}
-                    exit={{ opacity: 0, y: -4, height: 0 }}
-                    transition={{ duration: duration.fast }}
-                    className='text-red-500 text-sm mt-1'
-                  >
-                    {errors.email.message}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
+            </FormField>
 
-            {/* Message field */}
-            <div>
+            {/* Message */}
+            <FormField error={errors.message?.message}>
               <textarea
                 placeholder='Your Message'
                 {...register('message')}
                 className={`${inputClassName} h-28 resize-none`}
+                aria-invalid={!!errors.message}
               />
-              <AnimatePresence>
-                {errors.message && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4, height: 0 }}
-                    animate={{ opacity: 1, y: 0, height: 'auto' }}
-                    exit={{ opacity: 0, y: -4, height: 0 }}
-                    transition={{ duration: duration.fast }}
-                    className='text-red-500 text-sm mt-1'
-                  >
-                    {errors.message.message}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
+            </FormField>
 
-            {/* Submit button with state feedback */}
+            {/* Submit */}
             <motion.button
               type='submit'
               disabled={status === 'sending'}
-              whileHover={status !== 'sending' ? { scale: 1.01 } : {}}
-              whileTap={status !== 'sending' ? { scale: 0.98 } : {}}
+              whileHover={
+                status !== 'sending' && !prefersReduced
+                  ? { scale: 1.01, y: -1 }
+                  : {}
+              }
+              whileTap={
+                status !== 'sending' && !prefersReduced
+                  ? { scale: 0.98 }
+                  : {}
+              }
               className={`cursor-pointer text-center w-full px-6 sm:px-7 py-3 rounded-lg backdrop-blur-sm border text-foreground transition-all duration-300 flex items-center justify-center gap-2 ${
                 status === 'sending'
                   ? 'bg-neutral-50/30 dark:bg-neutral-100/5 border-card-foreground/20 cursor-not-allowed opacity-70'
                   : status === 'success'
                     ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-neutral-50/50 dark:bg-neutral-100/10 border-card-foreground/30 hover:border-card-foreground/50'
+                    : status === 'error'
+                      ? 'bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400'
+                      : 'bg-neutral-50/50 dark:bg-neutral-100/10 border-card-foreground/30 hover:border-emerald-500/50 hover:shadow-md hover:shadow-emerald-500/10'
               }`}
             >
               <AnimatePresence mode='wait'>

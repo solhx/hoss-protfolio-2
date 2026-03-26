@@ -1,3 +1,4 @@
+/* src/app/globals.css */
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -36,6 +37,9 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
+  /* ── NEW: Emerald accent as theme token ── */
+  --color-emerald-accent: oklch(0.696 0.17 162.48);
+
   --font-sans: var(--font-inter-sans);
   --font-mono: var(--font-inter-sans);
 
@@ -53,6 +57,7 @@
   --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-expo: cubic-bezier(0.87, 0, 0.13, 1);
 
   --animate-gradient: gradient 8s linear infinite;
   --animate-shiny-text: shiny-text 8s infinite;
@@ -80,7 +85,9 @@
   }
 }
 
-/* ROOT LIGHT */
+/* =============================================
+   ROOT LIGHT
+   ============================================= */
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -116,7 +123,9 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* DARK MODE */
+/* =============================================
+   DARK MODE
+   ============================================= */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -202,6 +211,39 @@
   }
 }
 
+/* ── NEW: Subtle rotate for skill icon wiggle ── */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+/* ── NEW: Glow pulse for active elements ── */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 8px rgb(16 185 129 / 0.15); }
+  50% { box-shadow: 0 0 20px rgb(16 185 129 / 0.3); }
+}
+
+/* ── NEW: Border draw animation ── */
+@keyframes borderDraw {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* ── NEW: Fade in up (pure CSS fallback) ── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
 /* =============================================
    ANIMATION UTILITIES
    ============================================= */
@@ -230,6 +272,19 @@
   animation: scaleIn var(--duration-slow) var(--ease-smooth) both;
 }
 
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+
+.animate-glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* ── NEW: Fade-in-up utility (for JS-less fallback) ── */
+.animate-fade-in-up {
+  animation: fadeInUp var(--duration-slower) var(--ease-smooth) both;
+}
+
 /* Stagger delay utilities */
 .stagger-1 { animation-delay: 50ms; }
 .stagger-2 { animation-delay: 100ms; }
@@ -239,17 +294,35 @@
 .stagger-6 { animation-delay: 300ms; }
 .stagger-7 { animation-delay: 350ms; }
 .stagger-8 { animation-delay: 400ms; }
+.stagger-9 { animation-delay: 450ms; }
+.stagger-10 { animation-delay: 500ms; }
 
 /* =============================================
-   THEME TRANSITIONS
+   THEME TRANSITIONS — Smooth color shifts
    ============================================= */
 
 html {
   scrollbar-width: none;
-  transition: color var(--duration-normal) var(--ease-in-out),
-              background-color var(--duration-normal) var(--ease-in-out);
+  transition:
+    color var(--duration-normal) var(--ease-in-out),
+    background-color var(--duration-normal) var(--ease-in-out);
 }
 
+/* Ensure all themed elements transition smoothly */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+  transition-duration: var(--duration-normal);
+  transition-timing-function: var(--ease-in-out);
+}
+
+/* Exclude motion-controlled elements from CSS transitions */
+[style*="transform"],
+[style*="opacity"],
+.no-transition {
+  transition-property: none !important;
+}
 
 /* =============================================
    ACCESSIBILITY — REDUCED MOTION
@@ -293,7 +366,7 @@ html {
 .no-outline:focus-visible {
   outline: none !important;
 }
-/* Remove focus outline for mouse users */
+
 :focus:not(:focus-visible) {
   outline: none;
 }
@@ -309,6 +382,14 @@ html {
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+    /* Prevent layout shift from scrollbar */
+    overflow-x: hidden;
+  }
+
+  /* ── NEW: Selection color ── */
+  ::selection {
+    background-color: rgb(16 185 129 / 0.2);
+    color: inherit;
   }
 }
 
@@ -318,7 +399,8 @@ html {
 
 @layer components {
   .main-button {
-    @apply w-fit px-6 py-3 sm:px-7 rounded-lg bg-neutral-50/50 dark:bg-neutral-100/10 backdrop-blur-sm border border-card-foreground/30 hover:border-emerald-500/50 text-foreground transition-all duration-300 flex items-center gap-2 hover:shadow-md hover:shadow-emerald-500/10 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    @apply w-fit px-6 py-3 sm:px-7 rounded-lg bg-neutral-50/50 dark:bg-neutral-100/10 backdrop-blur-sm border border-card-foreground/30 hover:border-emerald-500/50 text-foreground flex items-center gap-2 hover:shadow-md hover:shadow-emerald-500/10 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    /* Removed transition-all; now handled by the global * rule above */
   }
 
   .section-container {
@@ -329,32 +411,44 @@ html {
     @apply max-w-2xl text-base sm:text-lg text-neutral-600 dark:text-neutral-300 leading-relaxed;
   }
 
-  /* Interactive card base — reusable across sections */
   .interactive-card {
-    @apply relative backdrop-blur-sm bg-card/20 border border-border/50 rounded-lg transition-all duration-300 hover:bg-card/40 hover:border-emerald-500/30 hover:shadow-sm hover:shadow-emerald-500/5;
+    @apply relative backdrop-blur-sm bg-card/20 border border-border/50 rounded-lg hover:bg-card/40 hover:border-emerald-500/30 hover:shadow-sm hover:shadow-emerald-500/5;
   }
 
-  /* Form input base */
   .form-input {
-    @apply w-full rounded-lg border border-card-foreground/30 p-3 bg-transparent outline-none transition-all duration-300 focus:border-emerald-500/70 focus:ring-1 focus:ring-emerald-500/20 placeholder:text-muted-foreground/50;
+    @apply w-full rounded-lg border border-card-foreground/30 p-3 bg-transparent outline-none focus:border-emerald-500/70 focus:ring-1 focus:ring-emerald-500/20 placeholder:text-muted-foreground/50;
+  }
+
+  /* ── NEW: Glass card variant ── */
+  .glass-card {
+    @apply backdrop-blur-xl bg-card/30 border border-white/10 rounded-2xl shadow-lg shadow-black/5;
+  }
+
+  /* ── NEW: Gradient text utility ── */
+  .gradient-text {
+    @apply bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent;
+  }
+
+  /* ── NEW: Hover lift utility ── */
+  .hover-lift {
+    @apply hover:-translate-y-1 hover:shadow-lg active:translate-y-0 active:shadow-md;
   }
 }
 
 /* =============================================
-   SCROLLBAR (for browsers that support webkit)
+   SCROLLBAR
    ============================================= */
 
 ::-webkit-scrollbar {
   display: none;
 }
-/* Native smooth scroll ONLY as fallback if JS fails */
+
 @supports not (animation: none) {
   html {
     scroll-behavior: smooth;
   }
 }
 
-/* Reduced motion: instant scroll everywhere */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto !important;

@@ -11,14 +11,29 @@ interface SectionRevealProps {
   className?: string;
   delay?: number;
   direction?: 'up' | 'down' | 'left' | 'right' | 'none';
+  /** Distance in pixels to travel */
+  distance?: number;
+  /** Add blur during entrance */
+  blur?: boolean;
+  /** Add scale during entrance */
+  scale?: boolean;
+  /** Viewport margin for trigger */
+  margin?: string;
+  /** Allow re-triggering (default: false) */
+  once?: boolean;
+  /** Element tag */
+  as?: 'div' | 'section' | 'article' | 'header';
 }
 
-const directionOffset = {
-  up: { y: 40 },
-  down: { y: -40 },
-  left: { x: -40 },
-  right: { x: 40 },
-  none: {},
+const getOffset = (direction: string, distance: number) => {
+  const map: Record<string, { x?: number; y?: number }> = {
+    up: { y: distance },
+    down: { y: -distance },
+    left: { x: -distance },
+    right: { x: distance },
+    none: {},
+  };
+  return map[direction] ?? {};
 };
 
 export function SectionReveal({
@@ -26,35 +41,60 @@ export function SectionReveal({
   className,
   delay = 0,
   direction = 'up',
+  distance = 40,
+  blur = true,
+  scale: shouldScale = false,
+  margin = '-80px',
+  once = true,
+  as = 'div',
 }: SectionRevealProps) {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-80px' });
+  const isInView = useInView(ref, { once, margin  });
   const prefersReduced = useReducedMotion();
 
   if (prefersReduced) {
-    return <div className={className}>{children}</div>;
+    const Tag = as;
+    return <Tag className={className}>{children}</Tag>;
   }
 
+  const offset = getOffset(direction, distance);
+  const Component = motion[as];
+
   return (
-    <motion.div
+    <Component
       ref={ref}
       className={className}
       initial={{
         opacity: 0,
-        ...directionOffset[direction],
+        ...offset,
+        ...(blur ? { filter: 'blur(8px)' } : {}),
+        ...(shouldScale ? { scale: 0.95 } : {}),
       }}
       animate={
         isInView
-          ? { opacity: 1, x: 0, y: 0 }
-          : { opacity: 0, ...directionOffset[direction] }
+          ? {
+              opacity: 1,
+              x: 0,
+              y: 0,
+              ...(blur ? { filter: 'blur(0px)' } : {}),
+              ...(shouldScale ? { scale: 1 } : {}),
+            }
+          : {
+              opacity: 0,
+              ...offset,
+              ...(blur ? { filter: 'blur(8px)' } : {}),
+              ...(shouldScale ? { scale: 0.95 } : {}),
+            }
       }
       transition={{
         duration: duration.slower,
         ease: ease.smooth,
         delay,
+        ...(blur ? { filter: { duration: duration.slow } } : {}),
       }}
+      style={{ willChange: 'opacity, transform, filter' }}
     >
       {children}
-    </motion.div>
+    </Component>
   );
 }

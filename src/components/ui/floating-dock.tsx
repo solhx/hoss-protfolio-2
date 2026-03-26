@@ -20,31 +20,48 @@ export interface FloatingDockItems {
   href?: string;
   onClick?: () => void;
   download?: boolean;
+  /** Optional: section ID this link points to (for active state) */
+  sectionId?: string;
 }
 
-// ─── Helper: Determine if href is a hash link ───
 function isHashLink(href?: string): boolean {
   return !!href && href.startsWith('#');
 }
 
-// ─── Helper: Determine if href is external ───
 function isExternalLink(href?: string): boolean {
   return !!href && href.startsWith('http');
+}
+
+/** Extract section ID from href like "#home-skills-section" → "home-skills-section" */
+function getSectionIdFromHref(href?: string): string | undefined {
+  if (!href || !href.startsWith('#')) return undefined;
+  return href.slice(1);
 }
 
 export const FloatingDock = ({
   items,
   desktopClassName,
   mobileClassName,
+  activeSection,
 }: {
   items: FloatingDockItems[];
   desktopClassName?: string;
   mobileClassName?: string;
+  /** Currently visible section ID */
+  activeSection?: string;
 }) => {
   return (
     <>
-      <FloatingDockDesktop items={items} className={desktopClassName} />
-      <FloatingDockMobile items={items} className={mobileClassName} />
+      <FloatingDockDesktop
+        items={items}
+        className={desktopClassName}
+        activeSection={activeSection}
+      />
+      <FloatingDockMobile
+        items={items}
+        className={mobileClassName}
+        activeSection={activeSection}
+      />
     </>
   );
 };
@@ -56,9 +73,11 @@ export const FloatingDock = ({
 const FloatingDockMobile = ({
   items,
   className,
+  activeSection,
 }: {
   items: FloatingDockItems[];
   className?: string;
+  activeSection?: string;
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -70,24 +89,31 @@ const FloatingDockMobile = ({
             layoutId='nav'
             className='absolute inset-x-0 bottom-full mb-2 flex flex-col gap-2'
           >
-            {items.map((item, index) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{
-                  opacity: 0,
-                  y: 10,
-                  transition: { delay: index * 0.05 },
-                }}
-                transition={{ delay: (items.length - 1 - index) * 0.05 }}
-              >
-                <MobileNavItem
-                  item={item}
-                  onNavigate={() => setOpen(false)}
-                />
-              </motion.div>
-            ))}
+            {items.map((item, index) => {
+              const sectionId =
+                item.sectionId || getSectionIdFromHref(item.href);
+              const isActive = !!activeSection && activeSection === sectionId;
+
+              return (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{
+                    opacity: 0,
+                    y: 10,
+                    transition: { delay: index * 0.05 },
+                  }}
+                  transition={{ delay: (items.length - 1 - index) * 0.05 }}
+                >
+                  <MobileNavItem
+                    item={item}
+                    isActive={isActive}
+                    onNavigate={() => setOpen(false)}
+                  />
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
       </AnimatePresence>
@@ -108,51 +134,64 @@ const FloatingDockMobile = ({
   );
 };
 
-// ─── Mobile nav item — handles hash, external, and button items ───
 const MobileNavItem = ({
   item,
+  isActive,
   onNavigate,
 }: {
   item: FloatingDockItems;
+  isActive: boolean;
   onNavigate: () => void;
 }) => {
-  const baseClassName =
-    'flex h-10 w-10 items-center justify-center rounded-full bg-neutral-200/60 hover:bg-neutral-300/70 dark:bg-neutral-800/50 dark:hover:bg-neutral-700/60 backdrop-blur-sm transition-colors';
+  const baseClassName = cn(
+    'flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-sm transition-colors',
+    isActive
+      ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-500'
+      : 'bg-neutral-200/60 hover:bg-neutral-300/70 dark:bg-neutral-800/50 dark:hover:bg-neutral-700/60',
+  );
 
-  // Button (no href) — like theme toggle
   if (!item.href) {
     return (
       <button
         aria-label={item.title}
-        onClick={() => {
-          item.onClick?.();
-          // Don't close menu for toggle actions
-        }}
+        onClick={() => item.onClick?.()}
         className={baseClassName}
       >
-        <div className='text-neutral-800 dark:text-neutral-50'>{item.icon}</div>
+        <div
+          className={
+            isActive
+              ? 'text-emerald-500'
+              : 'text-neutral-800 dark:text-neutral-50'
+          }
+        >
+          {item.icon}
+        </div>
       </button>
     );
   }
 
-  // Hash link — use <a> tag, SmoothScroll handles the scroll
   if (isHashLink(item.href)) {
     return (
       <a
         href={item.href}
         aria-label={item.title}
-        onClick={() => {
-          // Close mobile menu after clicking
-          setTimeout(onNavigate, 100);
-        }}
+        aria-current={isActive ? 'true' : undefined}
+        onClick={() => setTimeout(onNavigate, 100)}
         className={baseClassName}
       >
-        <div className='text-neutral-800 dark:text-neutral-50'>{item.icon}</div>
+        <div
+          className={
+            isActive
+              ? 'text-emerald-500'
+              : 'text-neutral-800 dark:text-neutral-50'
+          }
+        >
+          {item.icon}
+        </div>
       </a>
     );
   }
 
-  // External link or download — use Next.js Link
   return (
     <Link
       href={item.href}
@@ -162,7 +201,9 @@ const MobileNavItem = ({
       download={item.download}
       className={baseClassName}
     >
-      <div className='text-neutral-800 dark:text-neutral-50'>{item.icon}</div>
+      <div className='text-neutral-800 dark:text-neutral-50'>
+        {item.icon}
+      </div>
     </Link>
   );
 };
@@ -174,9 +215,11 @@ const MobileNavItem = ({
 const FloatingDockDesktop = ({
   items,
   className,
+  activeSection,
 }: {
   items: FloatingDockItems[];
   className?: string;
+  activeSection?: string;
 }) => {
   const mouseX = useMotionValue(Infinity);
 
@@ -189,15 +232,26 @@ const FloatingDockDesktop = ({
         className,
       )}
     >
-      {items.map((item) => (
-        <IconContainer mouseX={mouseX} key={item.title} {...item} />
-      ))}
+      {items.map((item) => {
+        const sectionId =
+          item.sectionId || getSectionIdFromHref(item.href);
+        const isActive = !!activeSection && activeSection === sectionId;
+
+        return (
+          <IconContainer
+            mouseX={mouseX}
+            key={item.title}
+            isActive={isActive}
+            {...item}
+          />
+        );
+      })}
     </motion.div>
   );
 };
 
 // ═══════════════════════════════════════════════
-// ICON CONTAINER (Desktop — with magnetic scaling)
+// ICON CONTAINER — with active state indicator
 // ═══════════════════════════════════════════════
 
 function IconContainer({
@@ -207,6 +261,7 @@ function IconContainer({
   href,
   onClick,
   download,
+  isActive,
 }: {
   mouseX: MotionValue;
   title: string;
@@ -214,6 +269,7 @@ function IconContainer({
   href?: string;
   onClick?: () => void;
   download?: boolean;
+  isActive: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -239,7 +295,6 @@ function IconContainer({
 
   const [hovered, setHovered] = useState(false);
 
-  // ─── Tooltip ───
   const Tooltip = () => (
     <AnimatePresence>
       {hovered && (
@@ -255,25 +310,47 @@ function IconContainer({
     </AnimatePresence>
   );
 
-  // ─── Icon ───
   const IconInner = () => (
     <motion.div
       style={{ width: iconSize, height: iconSize }}
-      className='flex items-center justify-center text-neutral-800 dark:text-neutral-50'
+      className={cn(
+        'flex items-center justify-center',
+        isActive
+          ? 'text-emerald-500'
+          : 'text-neutral-800 dark:text-neutral-50',
+      )}
     >
       {icon}
     </motion.div>
   );
 
-  const containerClassName =
-    'relative flex aspect-square items-center justify-center rounded-full bg-neutral-200/60 hover:bg-neutral-300/70 dark:bg-neutral-700/50 dark:hover:bg-neutral-600/60 backdrop-blur-[6px] transition-colors cursor-pointer';
+  // ── Active indicator dot ──
+  const ActiveDot = () =>
+    isActive ? (
+      <motion.div
+        layoutId='active-nav-indicator'
+        className='absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-emerald-500'
+        transition={{
+          type: 'spring',
+          stiffness: 300,
+          damping: 25,
+        }}
+      />
+    ) : null;
+
+  const containerClassName = cn(
+    'relative flex aspect-square items-center justify-center rounded-full backdrop-blur-[6px] transition-colors cursor-pointer',
+    isActive
+      ? 'bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/20'
+      : 'bg-neutral-200/60 hover:bg-neutral-300/70 dark:bg-neutral-700/50 dark:hover:bg-neutral-600/60',
+  );
 
   const hoverHandlers = {
     onMouseEnter: () => setHovered(true),
     onMouseLeave: () => setHovered(false),
   };
 
-  // ─── Button (no href) — like theme toggle ───
+  // Button (no href)
   if (!href) {
     return (
       <motion.div ref={ref} style={{ width, height }} {...hoverHandlers}>
@@ -285,29 +362,32 @@ function IconContainer({
         >
           <Tooltip />
           <IconInner />
+          <ActiveDot />
         </motion.button>
       </motion.div>
     );
   }
 
-  // ─── Hash link — use <a> tag so SmoothScroll intercepts it ───
+  // Hash link
   if (isHashLink(href)) {
     return (
       <motion.div ref={ref} style={{ width, height }} {...hoverHandlers}>
         <a
           href={href}
           aria-label={title}
+          aria-current={isActive ? 'true' : undefined}
           className={containerClassName}
           style={{ width: '100%', height: '100%', display: 'flex' }}
         >
           <Tooltip />
           <IconInner />
+          <ActiveDot />
         </a>
       </motion.div>
     );
   }
 
-  // ─── External link or download — use Next.js Link ───
+  // External / download
   return (
     <motion.div ref={ref} style={{ width, height }} {...hoverHandlers}>
       <Link
@@ -321,6 +401,7 @@ function IconContainer({
       >
         <Tooltip />
         <IconInner />
+        <ActiveDot />
       </Link>
     </motion.div>
   );

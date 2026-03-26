@@ -1,6 +1,12 @@
 // src/lib/motion.ts
-// Centralized motion design tokens for consistent animation behavior
+// ═══════════════════════════════════════════════════════════
+// Centralized motion configuration for the entire portfolio.
+// All components import from here for consistency.
+// ═══════════════════════════════════════════════════════════
 
+import type { Transition, Variants } from 'motion/react';
+
+// ─── Duration tokens (seconds) ───
 export const duration = {
   instant: 0.1,
   fast: 0.2,
@@ -10,80 +16,138 @@ export const duration = {
   slowest: 1.2,
 } as const;
 
+// ─── Easing curves ───
 export const ease = {
-  default: [0.25, 0.1, 0.25, 1.0] as const,
-  in: [0.4, 0.0, 1.0, 1.0] as const,
-  out: [0.0, 0.0, 0.2, 1.0] as const,
-  inOut: [0.4, 0.0, 0.2, 1.0] as const,
-  smooth: [0.16, 1, 0.3, 1] as const,
-  bounce: [0.34, 1.56, 0.64, 1] as const,
-  spring: { type: 'spring' as const, stiffness: 200, damping: 24 },
-  gentleSpring: { type: 'spring' as const, stiffness: 120, damping: 20 },
+  smooth: [0.16, 1, 0.3, 1] as const,       // Aggressive deceleration
+  bounce: [0.34, 1.56, 0.64, 1] as const,   // Overshoot
+  inOut: [0.4, 0, 0.2, 1] as const,         // Material standard
+  out: [0, 0, 0.2, 1] as const,
+  in: [0.4, 0, 1, 1] as const,
+  expo: [0.87, 0, 0.13, 1] as const,        // Dramatic
 } as const;
 
+// ─── Stagger delay tokens ───
 export const stagger = {
-  fast: 0.03,
-  normal: 0.06,
-  slow: 0.1,
+  fast: 0.04,
+  normal: 0.08,
+  slow: 0.12,
   section: 0.15,
+  dramatic: 0.2,
 } as const;
-// Reusable animation variants
-export const fadeInUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (i: number = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: duration.slow,
-      ease: ease.smooth,
-      delay: i * stagger.normal,
-    },
-  }),
-};
 
-export const fadeIn = {
-  hidden: { opacity: 0 },
+// ─── Spring presets ───
+export const springs = {
+  gentle: { type: 'spring', stiffness: 100, damping: 20, mass: 1 } satisfies Transition,
+  bouncy: { type: 'spring', stiffness: 200, damping: 12, mass: 0.8 } satisfies Transition,
+  snappy: { type: 'spring', stiffness: 300, damping: 25, mass: 0.5 } satisfies Transition,
+  slow: { type: 'spring', stiffness: 60, damping: 20, mass: 1.5 } satisfies Transition,
+} as const;
+
+// ═══════════════════════════════════════════════════════════
+// REUSABLE VARIANT FACTORIES
+// ═══════════════════════════════════════════════════════════
+
+/** Fade + vertical slide (most common entrance) */
+export const fadeSlideUp = (delay = 0): Variants => ({
+  hidden: { opacity: 0, y: 40, filter: 'blur(8px)' },
   visible: {
     opacity: 1,
-    transition: { duration: duration.normal, ease: ease.default },
+    y: 0,
+    filter: 'blur(0px)',
+    transition: { duration: duration.slower, ease: ease.smooth, delay },
   },
-};
+});
 
-export const scaleIn = {
-  hidden: { opacity: 0, scale: 0.92 },
+/** Mask reveal — word slides up from behind overflow:hidden parent */
+export const maskReveal = (delay = 0): Variants => ({
+  hidden: { y: '110%', rotateX: -20 },
+  visible: {
+    y: '0%',
+    rotateX: 0,
+    transition: { duration: duration.slower, ease: ease.smooth, delay },
+  },
+});
+
+/** Scale + fade (for cards, badges) */
+export const scaleIn = (delay = 0): Variants => ({
+  hidden: { opacity: 0, scale: 0.85 },
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { duration: duration.slow, ease: ease.smooth },
+    transition: { ...springs.bouncy, delay },
   },
-};
+});
 
-export const slideInLeft = {
-  hidden: { opacity: 0, x: -32 },
+/** sectionReveal - section scroll reveal */
+export const sectionReveal: Variants = {
+  hidden: { opacity: 0, y: 60, filter: 'blur(12px)' },
   visible: {
     opacity: 1,
-    x: 0,
-    transition: { duration: duration.slow, ease: ease.smooth },
+    y: 0,
+    filter: 'blur(0px)',
+    transition: { duration: duration.slower, ease: ease.smooth },
   },
 };
 
-export const slideInRight = {
-  hidden: { opacity: 0, x: 32 },
+/** fadeInUp - upward fade */
+export const fadeInUp: Variants = {
+  hidden: { opacity: 0, y: 40 },
   visible: {
     opacity: 1,
-    x: 0,
-    transition: { duration: duration.slow, ease: ease.smooth },
+    y: 0,
+    transition: { duration: duration.normal, ease: ease.smooth },
   },
 };
 
-// Container variant for staggered children
-export const staggerContainer = (staggerAmount = stagger.normal) => ({
+/** Stagger container — orchestrates children */
+export const staggerContainer = (
+  childStagger = stagger.normal,
+  childDelay = 0.2,
+): Variants => ({
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: staggerAmount,
-      delayChildren: 0.1,
+      staggerChildren: childStagger,
+      delayChildren: childDelay,
     },
   },
 });
+
+/** staggerItem - item stagger for groups */
+export const staggerItem: Variants = {
+  hidden: { opacity: 0, y: 24, filter: 'blur(6px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: { duration: duration.slow, ease: ease.smooth },
+  },
+};
+
+/** staggerChild - backward compatible alias */
+export const staggerChild: Variants = staggerItem;
+
+/** Page-level entrance/exit */
+export const pageTransition: Variants = {
+  initial: { opacity: 0, y: 16, filter: 'blur(10px)' },
+  animate: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: { duration: duration.slower, ease: ease.smooth },
+  },
+  exit: {
+    opacity: 0,
+    y: -16,
+    filter: 'blur(10px)',
+    transition: { duration: duration.normal },
+  },
+};
+
+/** Diagonal wave delay for grids (top-left → bottom-right) */
+export const getGridDelay = (index: number, columns = 3): number => {
+  const row = Math.floor(index / columns);
+  const col = index % columns;
+  return (row + col) * 0.06;
+};

@@ -1,48 +1,84 @@
+// src/hooks/useMagnetic.ts
 'use client';
 
-import { useRef, useCallback, type RefObject, type MouseEvent } from 'react';
+import { useRef, useState, useCallback } from 'react';
+import {
+  useMotionValue,
+  useSpring,
+  type MotionValue,
+} from 'motion/react';
 import { useReducedMotion } from './useReducedMotion';
 
-interface MagneticReturn {
-  ref: RefObject<HTMLDivElement | null>;
+interface MagneticReturn<T extends HTMLElement> {
+  ref: React.RefObject<T | null>;
+  x: MotionValue<number>;
+  y: MotionValue<number>;
+  isHovered: boolean;
+  handleMouseMove: (e: React.MouseEvent) => void;
+  handleMouseLeave: () => void;
   handlers: {
-    onMouseMove: (e: MouseEvent) => void;
+    onMouseMove: (e: React.MouseEvent) => void;
     onMouseLeave: () => void;
   };
 }
 
-export function useMagnetic(strength: number = 0.3): MagneticReturn {
-  const ref = useRef<HTMLDivElement>(null);
-  const prefersReduced = useReducedMotion();
+/**
+ * Generic magnetic hook — pass the element type to get a correctly-typed ref.
+ *
+ * @example
+ * // For a <div>
+ * const magnetic = useMagnetic<HTMLDivElement>(0.15);
+ * <div ref={magnetic.ref} onMouseMove={magnetic.handleMouseMove} />
+ *
+ * @example
+ * // For a <button>
+ * const magnetic = useMagnetic<HTMLButtonElement>(0.2);
+ * <button ref={magnetic.ref} onMouseMove={magnetic.handleMouseMove} />
+ */
+export function useMagnetic<T extends HTMLElement = HTMLElement>(
+  strength: number = 0.35,
+): MagneticReturn<T> {
+  const ref = useRef<T | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+
+  const xRaw = useMotionValue(0);
+  const yRaw = useMotionValue(0);
+
+  const x = useSpring(xRaw, { stiffness: 200, damping: 15, mass: 0.5 });
+  const y = useSpring(yRaw, { stiffness: 200, damping: 15, mass: 0.5 });
 
   const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (prefersReduced || !ref.current) return;
+    (e: React.MouseEvent) => {
+      if (prefersReducedMotion || !ref.current) return;
 
-      const { left, top, width, height } =
-        ref.current.getBoundingClientRect();
-      const centerX = left + width / 2;
-      const centerY = top + height / 2;
+      const rect = ref.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
 
       const deltaX = (e.clientX - centerX) * strength;
       const deltaY = (e.clientY - centerY) * strength;
 
-      ref.current.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-      ref.current.style.transition =
-        'transform 0.15s cubic-bezier(0.16, 1, 0.3, 1)';
+      xRaw.set(deltaX);
+      yRaw.set(deltaY);
+      setIsHovered(true);
     },
-    [strength, prefersReduced],
+    [prefersReducedMotion, strength, xRaw, yRaw],
   );
 
   const handleMouseLeave = useCallback(() => {
-    if (!ref.current) return;
-    ref.current.style.transform = 'translate(0px, 0px)';
-    ref.current.style.transition =
-      'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
-  }, []);
+    xRaw.set(0);
+    yRaw.set(0);
+    setIsHovered(false);
+  }, [xRaw, yRaw]);
 
   return {
     ref,
+    x,
+    y,
+    isHovered,
+    handleMouseMove,
+    handleMouseLeave,
     handlers: {
       onMouseMove: handleMouseMove,
       onMouseLeave: handleMouseLeave,

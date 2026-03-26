@@ -1,5 +1,6 @@
 export * from './useChat';
 // src/hooks/index.ts
-export { useChat } from './useChat';
-export { useMagnetic } from './useMagnetic';
 export { useReducedMotion } from './useReducedMotion';
+export { useMagnetic } from './useMagnetic';
+export { useChat } from './useChat';
+export { useMouseParallax } from './useMouseParallax';
